@@ -1,0 +1,8 @@
+#!/bin/bash
+
+CURRENT_VERSION=`cat /local/tomcat/webapps/facilitator/WEB-INF/classes/version.properties | sed 's/.*=//g'`
+PRODUCTION_VERSION=`cat /nas/fac_version | grep -v "#" | sed 's/.*=//g'`
+
+if [ $CURRENT_VERSION != $PRODUCTION_VERSION ]; then echo "CRIT: Current Version: $CURRENT_VERSION. Expected: $PRODUCTION_VERSION!"; exit 2; fi
+
+echo "OK: Version: $CURRENT_VERSION"; exit 0

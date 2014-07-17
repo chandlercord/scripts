@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#version file lives in /local/nagios/facilitator_version.txt, update said file after rolling out facilitators
+
+USAGE="Usage: $0 -H <Hostname> -V <Expected Version #>"
+VERSION=`cat /local/nagios/facilitator_version.txt`
+
+while getopts "H:V:h" ARG; do
+        case $ARG in
+                H) HOST=$OPTARG;;
+                H) VERSION=$OPTARG;;
+                h) echo $USAGE; exit;;
+        esac
+done
+
+if [ $# == "0" ]; then
+        echo $USAGE
+        exit
+fi
+
+if [ -z "$VERSION" ]; then
+        echo "Version not set"
+        echo $USAGE
+        exit
+fi
+
+CMD=`/usr/lib64/nagios/plugins/check_nrpe -H ${HOST} -c check_facilitator_version | sed 's/.*\///g'`
+
+if [ $CMD -ne $VERSION ]; then echo "CRIT: Current Version: $CMD. Expected: $VERSION! Update version file: `hostname -s`:/local/nagios/facilitator_version.txt"; exit 2; fi
+echo "OK: Facilitator Version $VERSION."; exit 0

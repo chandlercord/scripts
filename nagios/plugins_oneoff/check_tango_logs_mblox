@@ -1,0 +1,26 @@
+#!/bin/bash
+
+DIRPATH="/local/rsyslog/log/"
+LINES=750000
+FILENAME="tango"`date +%Y%m%d`".log"
+CRIT="0"
+USAGE="Usage: $0 -H <Hostname> -l <number of lines>"
+
+if [ $# == "0" ]; then
+        echo $USAGE
+        exit
+fi
+
+while getopts "l:H:h" ARG; do
+        case $ARG in
+                l) LINES=$OPTARG;;
+                H) HOST=$OPTARG;;
+                h) echo $USAGE; exit;;
+        esac
+done
+
+GREPRESULT=`tail -$LINES $DIRPATH$FILENAME | grep ${HOST} | grep -i mblox | wc -l`
+
+if [ ${GREPRESULT} -eq ${CRIT} ]; then echo "CRIT: No mBlox entries for ${HOST} found the in the log!"; exit 2; fi
+
+echo "OK: ${GREPRESULT} mBlox entries for ${HOST} found the in the log."; exit 0

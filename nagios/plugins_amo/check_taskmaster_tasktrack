@@ -1,0 +1,24 @@
+#!/bin/bash
+
+WARN="600"
+CRIT="900"
+JOB="0"
+
+while getopts "j:c:w:h" ARG; do
+        case $ARG in
+                j) JOB=$OPTARG;;
+                w) WARN=$OPTARG;;
+                c) CRIT=$OPTARG;;
+                h) echo -e "Please run script as follows:\n$0 -j <tasktrack job (0-7)> -w <Warning threshold in seconds> -c <Warning threshold in seconds>\nScript defaults to:\n$0 -j ${JOB} -c ${CRIT} -w ${WARN}"; exit;;
+        esac
+done
+
+PushFriend="PushFriendNotificationDelivery::pri-${JOB}"
+NOW=`date '+%s'`
+LASTSEEN=`date +%s --date="$(echo $(mysql -h us0101atrd004 -u tadmin -p2toTang0 tango -e "select time_last_activity from tasktrack where task_name = '${PushFriend}';" | tail -1))"`
+DELTA=$(($NOW - $LASTSEEN))
+
+if [ $DELTA -gt $CRIT ]; then echo "CRIT: ${PushFriend} has not run in $DELTA seconds. Check YFJ jobs on us0101afa001/2"; exit 2; fi
+if [ $DELTA -gt $WARN ]; then echo "WARN: ${PushFriend} has not run in $DELTA seconds. Check YFJ jobs on us0101afa001/2"; exit 1; fi
+
+echo "OK: ${PushFriend} ran $DELTA seconds ago."; exit 0

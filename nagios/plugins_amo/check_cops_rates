@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# BEGIN config
+# SINGLE decimal point precision is optional.  "#.##" will throw an error.
+WARN="3"
+#WARN="3.0"
+CRIT="5.0"
+#CRIT="5.0"
+
+host="us0101acp001"
+port="8086"
+
+# URL to display in alerts
+URL_WIKI="http://wiki.tango.corp/mediawiki/index.php/Restarting_Message_Brokers"
+
+# If you want logging of curl result
+log="/tmp/cops.log"
+
+# XML payload to retreive stats
+data="<command xmlns=\"service:tango:rtdc:1\" name=\"incomingrate\"></command>"
+
+# END config
+
+while getopts "H:p:hc:w:" ARG; do
+        case $ARG in
+                w) WARN=$OPTARG;;
+                c) CRIT=$OPTARG;;
+                H) host=$OPTARG;;
+                p) port=$OPTARG;;
+                h) echo "Usage: $0 -H <host> -p <port> -w <warning threshold> -c <critical threshold>"; exit;;
+        esac
+done
+
+# sanity check the thresholds
+TMP_WARN=${WARN#*.}
+if [ ${#TMP_WARN} -gt 1 ]; then
+  echo "ERROR: WARN threshold ${WARN} exceeds single decimal point precision"
+  exit 3
+fi
+TMP_CRIT=${CRIT#*.}
+if [ ${#TMP_CRIT} -gt 1 ]; then
+  echo "ERROR: CRIT threshold ${CRIT} exceeds single decimal point precision"
+  exit 3
+fi
+
+REPLY=`curl -s --header "Content-Type: text/xml; charset=utf-8" --data "${data}" http://${host}:${port} 2>&1`
+RESULT=$?
+if [ -w "$log" ]; then
+  echo -e "`date '+%F %R:%S'` - $REPLY" >> $log
+fi
+
+if [ $RESULT -gt 0 ]; then
+  echo "UNKN: curl exited ${RESULT}: ${REPLY}"
+  exit 3
+fi
+
+# expected output:
+# <?xml version="1.0" ?><incomingRateResponse xmlns="service:tango:rtdc:1" dropping="0.0" incoming="1234.0123456789012"></incomingRateResponse>
+
+# strip everything prior to the droprate value, hopefully 0.0
+RATE_DROP=${REPLY##<*dropping=\"}
+# and now strip everything after the trailing "
+RATE_DROP=${RATE_DROP%%\"*}
+
+# do it again, but for incoming
+RATE_INCOMING=${REPLY##<*incoming=\"}
+RATE_INCOMING=${RATE_INCOMING%%\"*}
+
+# droprate has single decimal point precision.  bash math doesn't do fractions.
+# strip the decimal point, multiply by 10.
+TMP_DECIMALS=${RATE_DROP#*.}
+TMP_MULTIPLIER=$((${#TMP_DECIMALS}*10))
+RATE_DROP_MULTI=${RATE_DROP/.}
+
+if [ ${CRIT/.} -lt $TMP_MULTIPLIER ]; then
+  # just in case someone put "5."
+  CRIT=${CRIT/.}
+  CRIT_MULTI=$(($CRIT*TMP_MULTIPLIER))
+else
+  CRIT_MULTI=${CRIT/.}
+fi
+if [ ${WARN/.} -lt $TMP_MULTIPLIER ]; then
+  # just in case someone put "3."
+  WARN=${WARN/.}
+  WARN_MULTI=$(($WARN*TMP_MULTIPLIER))
+else
+  WARN_MULTI=${WARN/.}
+fi
+
+if [[ $RATE_DROP_MULTI -ge $CRIT_MULTI ]]; then
+  echo "CRIT - dropRate = ${RATE_DROP} (thresh ${CRIT}) - incomingRate = ${RATE_INCOMING} - see ${URL_WIKI} | dropped_packets=${RATE_DROP};${WARN};${CRIT}"
+  exit 2
+elif [[ $RATE_DROP_MULTI -ge $WARN_MULTI ]]; then
+  echo "WARN - dropRate = ${RATE_DROP} (thresh ${WARN}) - incomingRate = ${RATE_INCOMING} - see ${URL_WIKI} | dropped_packets=${RATE_DROP};${WARN};${CRIT}"
+else
+  echo "OK - dropRate = ${RATE_DROP} - incomingRate = ${RATE_INCOMING} | dropped_packets=${RATE_DROP};${WARN};${CRIT}"
+fi
+
