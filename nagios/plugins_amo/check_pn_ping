@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+# Nagios script to check website is up and responding in a timely manner
+
+### Environment paths
+#NETCAT=`which nc`
+#DATE=`which date`
+#WGET=`which wget`
+#ECHO=`which echo`
+#AWK=`which awk`
+#CKSUM=`which cksum`
+#TR=`which tr`
+
+NETCAT=/usr/bin/nc
+DATE=/bin/date
+WGET=/usr/bin/wget
+ECHO=/bin/echo
+AWK=/bin/awk
+CKSUM=/usr/bin/cksum
+TR=/usr/bin/tr
+GREP=/bin/grep
+EGREP=/bin/egrep
+SED=/bin/sed
+CURL=/usr/bin/curl
+CAT=/bin/cat
+
+# Temp file
+WGETOUT=/tmp/wgetoutput
+
+### Functions
+# Check dependencies and paths
+checkpaths(){
+        for PATH in $NETCAT $DATE $WGET $ECHO $AWK $CKSUM $TR; do
+                if [ ! -f "$PATH" ]; then
+                        STATUS=UNKNOWN
+                        OUTMSG="ERROR: $PATH does does not exist"
+                        output
+                fi
+        done
+}
+
+checkinputs(){
+        if [ ! -n "$WARN" ]; then
+                ERROR="Warning not set"
+                usage
+        fi
+        case $WARN in
+                *[!0-9]*)
+                ERROR="Warning must be in milliseconds"
+                usage
+        esac
+        if [ ! -n "$CRIT" ]; then
+                ERROR="Critical not set"
+                usage
+        fi
+        case $CRIT in
+                *[!0-9]*)
+                ERROR="Critical must be in milliseconds"
+                usage
+        esac
+        if [ "$CRIT" -lt "$WARN" ]; then
+                ERROR="Critical must be greater than Warning"
+                usage
+        fi
+        if [ ! -n "$NODE" ]; then
+                ERROR="HOST not set"
+                usage
+        fi
+        if [ ! -n "$PORT" ]; then
+                ERROR="PORT not set"
+                usage
+        fi
+        if [ ! -n "$SLASH" ]; then
+                ERROR="URL not set"
+                usage
+        fi
+URL="${NODE}:${PORT}${SLASH}"
+}
+
+# Make temp file unique for URL
+mktmpfile(){
+        WGETOUTCKSUM=$WGETOUT`$ECHO $URL |$CKSUM |$AWK '{print $1}'`
+}
+
+# Print usage statement
+usage(){
+        $ECHO "UNKNOWN - Error: $ERROR"
+        $ECHO "Usage: check_website.sh -w <warning milliseconds> -c <critical milliseconds> -h <host> -p <port> -u <url>"
+        exit 3
+}
+
+# Check page response time
+pageload(){
+	CONTENT_TYPE='Content-Type: text/xml'
+        STARTTIME=$($DATE +%s%N)
+        GOGET=`$CURL -i -o ${WGETOUTCKSUM}.output -s -XPOST -H "$CONTENT_TYPE" -d '{"pushplatform":10}' $URL`
+        $GOGET
+        ENDTIME=$($DATE +%s%N)
+        # Check if page can be loaded and contains data
+        if [ ! -n "$XML" ]; then
+                if [ ! -s "$WGETOUTCKSUM" ]; then
+                        OUTMSG="$URL does not contain any data"
+                        STATUS=CRITICAL
+                        output
+                fi
+        fi
+        TIMEDIFF=$((($ENDTIME-$STARTTIME)/1000000))
+        if [ "$TIMEDIFF" -lt "$WARN" ]; then
+                STATUS=OK
+        elif [ "$TIMEDIFF" -ge "$WARN" ] && [ "$TIMEDIFF" -lt "$CRIT" ]; then
+                STATUS=WARNING
+        elif [ "$TIMEDIFF" -ge "$CRIT" ]; then
+                STATUS=CRITICAL
+        fi
+        OUTMSG="$TIMEDIFF ms"
+}
+
+# Output statement and exit
+output(){
+        RESPONSE=`$GREP push ${WGETOUTCKSUM}.output`
+        #RESPONSE=`$GREP tango ${WGETOUTCKSUM}.output | $SED 's/.*\(HOSTNAME\)\">/\1=/;s/<.*\(TOMCAT_VERSION\)\">/. \1=/;s/<.*\(APP_NAME\)\">/. \1=/;s/<.*\(SUCCESS\)\">/. \1=/;s/<.*\(USED_MEMORY\)\">/. \1=/;s/<.*\(UPTIME\)\">/. \1=/;s/<.*\(APP_VERSION\)\">/. \1=/;s/<.*\(TOTAL_MEMORY\)\">/. \1=/;s/<.*\(JVM_VERSION\)\">/. \1=/;s/<.*//g'`
+                RESPCODE=`$GREP HTTP ${WGETOUTCKSUM}.output | $SED 's/HTTP\/1.1//g;s/^ //g;s/ .*//g'`
+                $ECHO "$STATUS - $RESPCODE - $OUTMSG - $RESPONSE |Response="$TIMEDIFF"ms;"$WARN";"$CRIT";0"
+        #/bin/cat $WGETOUTCKSUM | $GREP error
+        #if [ "$?" == "0" ]; then
+        #       $ECHO "CRITICAL - $RESPCODE - $OUTMSG - `/bin/cat $WGETOUTCKSUM`|Response="$TIMEDIFF"ms;"$WARN";"$CRIT";0"
+        #       exit 2
+        #fi
+        if [ "$RESPCODE" != "200" ]; then
+                exit 2
+        elif [ "$STATUS" = "OK" ]; then
+                exit 0
+        elif [ "$STATUS" = "WARNING" ]; then
+                exit 1
+        elif [ "$STATUS" = "CRITICAL" ]; then
+                exit 2
+        fi
+}
+
+### Main
+# Input variables
+while getopts w:c:h:p:s:x option
+        do case "$option" in
+                w) WARN=$OPTARG;;
+                c) CRIT=$OPTARG;;
+                h) NODE=$OPTARG;;
+                p) PORT=$OPTARG;;
+                s) SLASH=$OPTARG;;
+                x) XML="TRUE"; CONTENT_TYPE='Content-Type: text/xml';;
+                *) ERROR="Illegal option used"
+                        usage;;
+        esac
+done
+
+checkpaths
+checkinputs
+mktmpfile
+#checkopen
+pageload
+output

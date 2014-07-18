@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#Bunch'o'varables
+PHONENUMBER="16503152283"
+COUNTRYCODE="1"
+DESTURL='https://57394.net/kannel/api_mt.php'
+RECEIPTIP="199.83.168.43"
+USERNAME="tango"
+PASSWORD="tango1234"
+RECEIPTURL='http%3A%2F%2F'${RECEIPTIP}'%3A8080%2Fsmsdelivery%2Fmblox_delivery_receipt%3FMSISDN%3D%2B'${PHONENUMBER}'%26RequestID%3D0000001'
+SENDURL=${DESTURL}'?un='${USERNAME}'&pass='${PASSWORD}'&MSISDN=+'${PHONENUMBER}'&countryCode='${COUNTRYCODE}'&message=MT_message_text'
+
+#Remove tmp file and run curl command redirecting output to /tmp/$0.output
+rm /tmp/$0.output
+curl -s ${SENDURL}'&notify='${RECEIPTURL} > /tmp/$0.output
+
+#if the tmp file has any output, exit out critical, if not, OK
+if [ -s /tmp/$0.output ]; then
+	echo "mBlox SMS Send Failure, please investigate. `cat /tmp/$0.output`"
+	exit 2
+else
+	echo "mBlox SMS Send Successful"
+	exit 0
+fi

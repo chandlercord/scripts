@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#Nagios plugin for checking expiration of SSL certificates on disk.
+#Chandler Cord ccord@machinezone.com
+
+#Nagios plugin to check openssl certificate expiration
+
+. /usr/lib/nagios/plugins/utils.sh
+
+#Warnign and critical levels in days
+CRIT=30
+
+USAGE="$0 -w <days> -c <days> -C <path to certificate>\nExample: $0 -w 45 -c 30 -C /etc/ssl/certs/<cert name>"
+
+if [ $# == 0 ]; then
+        echo -e $USAGE
+        exit 1
+fi
+
+while getopts "c:w:C:h" ARG; do
+	case $ARG in
+		w) WARN=$OPTARG;;
+		c) CRIT=$OPTARG;;
+		C) CERT=$OPTARG;;
+		h) echo -e $USAGE; exit 1;;
+	esac
+done	
+
+if [ -z $CERT ]; then
+	echo "-C <path to certificate> is required"
+	echo -e $USAGE
+	exit 1
+fi
+
+certdate=`openssl x509 -noout -in $CERT -dates`
+certdatestripped=`echo $certdate | grep After | sed 's/.*=//g'`
+
+today=`date '+%Y%m%d'`
+expdate=`date -d "$certdatestripped" '+%Y%m%d'`
+etoday=`date --date="$today" +%s`
+ecertdate=`date --date="$expdate" +%s`
+
+remaining=`echo "($ecertdate-$etoday)/(60*60*24)" | bc`
+
+if [ $remaining -le $CRIT ]; then echo "CRIT: $CERT expires in $remaining days!"; exit $STATE_CRITICAL; fi
+if [ ! -z $WARN ]; then if [ $remaining -ge $WARN ]; then echo "WARN: $CERT expires in $remaining days!"; exit $STATE_WARNING; fi; fi
+echo "OK: $CERT expires in $remaining days"; exit $STATE_OK

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#Default values
+YOURLS_HOST="199.83.168.93" #YOURLS VIP
+YOURLS_SIGNATURE="59c3158935" #Production signature
+HELP_MSG="Usage: $0 -H <host> -s <yourls signature>\nOr use defaults: $0 -d"
+DEFAULTS="Default variables: -H $YOURLS_HOST -s $YOURLS_SIGNATURE"
+OUTFILE="/tmp/yourls.stdout"
+ERRORFILE="/tmp/yourls.stderr"
+
+while getopts "H:s:hd" ARG; do
+	case $ARG in
+		H) YOURLS_HOST=$OPTARG;;
+		s) YOURLS_SIGNATURE=$OPTARG;;
+		h) echo -e "$HELP_MSG\n$DEFAULTS"; exit;;
+		d) ;;
+	esac
+done
+
+if [ $# = "0" ]; then
+	echo -e "$HELP_MSG\n$DEFAULTS"
+	exit
+fi
+
+if [[ `hostname -s` =~ "avmm0" ]]; then
+	YOURLS_SIGNATURE=`grep videomail.webview.url.shortener.yourls.signature /local/tomcat/webapps/videomail/WEB-INF/classes/local.properties | sed 's/.*=//g'`
+	YOURLS_HOST=`grep videomail.webview.url.shortener.yourls.url /local/tomcat/webapps/videomail/WEB-INF/classes/local.properties | sed 's/.*\/\///g;s/\/.*//g'`
+fi
+
+CURL_COMMAND=`curl --stderr ${ERRORFILE} -o ${OUTFILE} -H'Content-Type:application/json' -XPOST -d"{\"action\":\"shorturl\",\"format\":\"json\",\"url\":\"http://tango.me:8080/videomail/view/AAAAAE9Nmss21cuWkrPHFmOKjwGwNYAVw/iOSgg45678\",\"signature\":\"${YOURLS_SIGNATURE}\"}" http://${YOURLS_HOST}/yourls-api.php`
+RESP_CODE=`sed 's/.*Code":/Code":/g;s/.*://g;s/}//g' ${OUTFILE}`
+
+
+if [ ${RESP_CODE} -ne "200" ]; then echo "CRIT: YOURLS Returned a ${RESP_CODE} instead of 200. Check YOURLS on us0101bwb001/2"; exit 2; fi
+echo "YOURLS return code: ${RESP_CODE}"; exit 0
