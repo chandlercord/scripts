@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#nrpe:
+#command[check_dashboard_latency]=/usr/lib64/nagios/plugins/check_fio-msrv.sh
+#command:
+#$USER1$/check_nrpe -H $HOSTADDRESS$ -t 15 -c check_fio-msrv
+
+WARN="2"
+CRIT="6"
+COUNT=$(grep "`date '+%F'`" /var/log/fusionio/fio-msrv.log | grep "sqlite_mobj_connection" | wc -l)
+
+if [ $COUNT -gt $CRIT ]; then echo "CRIT: Errors detected on fio-msrv, restart process!"; exit 2; fi
+if [ $COUNT -gt $WARN ]; then echo "WARN: Errors detected on fio-msrv, restart process!"; exit 1; fi
+
+echo "OK: No failures detected."; exit 0

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+file=/tmp/invoke
+
+if [ -s $file ]; then
+ 	echo "Check BI ETL Jobs, running longer than 8 minutes; Jobs did not finish"
+	echo "Check script is running /local/feeds/scripts"
+	exit 2
+else
+	echo "OK"
+	exit 0
+fi

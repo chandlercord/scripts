@@ -1,0 +1,13 @@
+#!/bin/bash
+
+NOW=`date '+%s'`
+LASTSEEN=`tac /local/taskmaster/taskmaster.log | grep -m 1 PUSHOK | awk '{ print $1 " " $2 }' | sed 's/\[//;s/,.*//'`
+LASTSEENE=`date +%s --date="$(echo $LASTSEEN)"`
+DELTA=$(($NOW - $LASTSEENE))
+WARN=$1
+CRIT=$2
+
+if [ $DELTA -gt $CRIT ]; then echo "CRIT: No pushes have been seen in $DELTA seconds."; exit 2; fi
+if [ $DELTA -gt $WARN ]; then echo "WARN: No pushes have been seen in $DELTA seconds."; exit 1; fi
+
+echo "OK: Last push seen $DELTA seconds ago."; exit 0

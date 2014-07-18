@@ -1,0 +1,26 @@
+#!/bin/bash
+
+LOGFILE=/local/tomcat/logs/tangogear-smsdelivery.log
+PHONENUMBER="6503152283"
+
+while getopts "l:p:h" ARG; do
+	case $ARG in
+		p) PHONENUMBER=$OPTARG;;
+		l) LOGFILE=$OPTARG;;
+		h) echo -e "Usage: $0 -p <Phone Number> -l <log file location>\n$PHONENUMBER and $LOGFILE used by default"; exit;;
+	esac
+done
+
+MIN5=`date '+%F %H:%M' -d "5 min ago"`
+MIN4=`date '+%F %H:%M' -d "4 min ago"`
+MIN3=`date '+%F %H:%M' -d "3 min ago"`
+MIN2=`date '+%F %H:%M' -d "2 min ago"`
+MIN1=`date '+%F %H:%M'`
+
+if [ `tail -1000 $LOGFILE | egrep "$MIN5|$MIN4|$MIN3|$MIN2|$MIN1" | grep $PHONENUMBER | wc -l` -gt "0" ]; then
+	echo "Mblox Delivery Receipt Recieved for $PHONENUMBER"
+	exit 0
+else
+	echo "Mblox Delivery Reciept not received for $PHONENUMBER!"
+	exit 2
+fi

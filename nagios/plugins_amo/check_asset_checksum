@@ -1,0 +1,24 @@
+#!/bin/bash
+
+SERVER=$1
+PORT=$2
+DOWNLOADDIR="/tmp/asset.$SERVER"
+OUTFILE="/tmp/$SERVER.out"
+VERIFY_CONTENT="/usr/lib64/nagios/plugins/verify_content.py"
+
+if [ $# -ne "2" ]; then
+        echo "Usage: $0 <Asset server> <port>"
+        exit 3
+fi
+
+if [ ! -d $DOWNLOADDIR ]; then
+        mkdir $DOWNLOADDIR
+fi
+
+python26 $VERIFY_CONTENT $SERVER $PORT $DOWNLOADDIR > $OUTFILE
+
+
+[[ `grep -B 2 MISMATCH $OUTFILE | grep ".zip" | wc -l` -gt "0" ]] && echo "CRITICAL - Mismatched assets: `grep -B 2 MISMATCH $OUTFILE | grep ".zip"`" && exit 2
+
+echo "OK: Asset checksums match."
+exit 0

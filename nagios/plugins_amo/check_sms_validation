@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# set default values for the thresholds
+WARN=92
+CRIT=98
+
+while getopts "c:w:h" ARG; do
+        case $ARG in
+                w) WARN=$OPTARG;;
+                c) CRIT=$OPTARG;;
+                h) echo "Usage: $0 -w <warning threshold> -c <critical threshold>"; exit;;
+        esac
+done
+
+now=$(date +%s)
+start=$((now/300*300 - 300))
+end=$((start+299))
+SMSVALIDATION_LAST5=$(mysql -h us0101alwd004 -u tadmin -p2toTang0 tango_logging -e "select value from counters where definition_id = (select id from counterDefinitions where name = 'sms_send_ok_validation' ) and  unix_timestamp(sample_bt) = ${start}")
+COUNT=$(echo ${SMSVALIDATION_LAST5} | awk  '{print $2}')
+
+text="$COUNT SMS Validations in the last 5 minutes. | sms_validations=${COUNT};${WARN};${CRIT}"
+[[ "$COUNT" -le "$WARN" ]] && echo       "OK - $text" && exit 0
+[[ "$COUNT" -ge "$CRIT" ]] && echo "CRITICAL - $text" && exit 2
+[[ "$COUNT" -ge "$WARN" ]] && echo  "WARNING - $text" && exit 1

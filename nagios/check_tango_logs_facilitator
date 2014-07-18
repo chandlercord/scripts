@@ -1,0 +1,20 @@
+#!/bin/bash
+
+DIRPATH="/local/rsyslog/log/"
+LINES=25000
+FILENAME="tango"`date +%Y%m%d`".log"
+CRIT="0"
+
+while getopts "l:H:h" ARG; do
+        case $ARG in
+                l) LINES=$OPTARG;;
+                H) HOST=$OPTARG;;
+                h) echo "Usage: $0 -H <Hostname> -l <number of lines>"; exit;;
+        esac
+done
+
+GREPRESULT=`tail -$LINES $DIRPATH$FILENAME | grep $HOST | wc -l`
+
+if [ ${GREPRESULT} -eq ${CRIT} ]; then echo "CRIT: No entries for ${HOST} found the in the log!"; exit 2; fi
+
+echo "OK: ${GREPRESULT} entries for ${HOST} found the in the log."; exit 0
