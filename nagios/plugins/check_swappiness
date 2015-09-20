@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#command[check_swapping]=/usr/lib64/nagios/plugins/swapping.sh
-#$USER1$/check_nrpe -H $HOSTADDRESS$ -t 15 -c check_swapping
+#command[check_swapping]=/usr/lib64/nagios/plugins/check_swappiness
+#$USER1$/check_nrpe -H $HOSTADDRESS$ -t 15 -c check_swappiness
 
 . /usr/lib64/nagios/plugins/utils.sh
 
