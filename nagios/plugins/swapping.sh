@@ -37,4 +37,4 @@ if [ $SWAPOUT -gt $CRIT ]; then echo CRIT: swap out: $SWAPOUT; exit 2; fi
 if [ $SWAPIN -gt $WARN ]; then echo WARN: swap in: $SWAPIN; exit 1; fi
 if [ $SWAPOUT -gt $WARN ]; then echo WARN: swap out: $SWAPOUT; exit 1; fi
 
-echo "Swapping OK: swap in: $SWAPIN. swap out: $SWAPOUT.; exit 0
+echo "Swapping OK: swap in: $SWAPIN. swap out: $SWAPOUT."; exit 0
