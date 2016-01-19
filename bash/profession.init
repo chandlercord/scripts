@@ -1,0 +1,73 @@
+#!/bin/sh
+# profession <summary>
+#
+# chkconfig:   2345 80 20
+# description: Starts and stops profession webapp
+
+### BEGIN INIT INFO
+# Provides: profession
+# Required-Start: $network $named
+# Required-Stop: $network $named
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: This service manages the profession daemon
+# Description: This is a simple python flask webapp to store profession information
+### END INIT INFO
+
+# /etc/init.d/profession -- startup script for profession webapp
+
+if [ -f /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+elif [ -f /etc/init.d/functions ]; then
+  . /etc/init.d/functions
+else
+  echo "Init functions not found"
+  exit 3
+fi
+
+PIDFILE="/var/run/profession.pid"
+PROFESSION_DIR="/root/narvar/profession/"
+
+start() {
+  echo -n "Starting profession Daemon: "
+  if [ -f $PIDFILE ]; then
+    PID=`cat $PIDFILE`
+    echo profession already running: $PID
+    exit 1;
+  else
+    cd $PROFESSION_DIR
+    PID=`python wsgi/profession.py >/dev/null 2>&1 & echo $! > $PIDFILE`
+    echo `cat $PIDFILE`
+  fi
+}
+
+stop() {
+  echo -n "Shutting down PROFESSION_DIR Daemon: "
+  echo
+  kill `ps -ef | grep profession.py | grep -v grep | awk '{ print $2 }'`
+  echo
+  rm -f /var/lock/subsys/profession
+  rm -f ${PIDFILE}
+  return 0
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status profession
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage:  {start|stop|status|restart}"
+    exit 1
+    ;;
+esac
+exit $?

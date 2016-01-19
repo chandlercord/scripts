@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block body %}
+<div id="main" class="container">
+    <h2>All Professions</h2>
+    <table class="table table-hover">
+      <tr>
+        <th>#
+        <th>First Name
+        <th>Last Name
+        <th>Email Address
+        <th>Profession
+        <th>Date
+      {%- for profession in profession %}
+        <tr>
+        <td>{{ profession.id }}
+        <td>{{ profession.fname }}
+        <td>{{ profession.lname }}
+        <td>{{ profession.email }}
+        <td>{{ profession.profession }}
+        <td>{{ profession.create_date.strftime('%Y-%m-%d %H:%M') }}</td>
+      {%- endfor %}
+    </table>
+    <p>
+      <a href="{{ url_for('new') }}" class="btn btn-large btn-primary">Add Profession</a>
+ 
+ 
+</div>
+{% endblock %}

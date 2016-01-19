@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block body %}
+  <form action="" method=post class="form-horizontal">
+    <h2>Add your profession</h2>
+    <div class="control-group">
+        <div class="controls">
+          <input type="text" id="fname" name="fname" class="input-xlarge"
+            placeholder="Please enter your first name" value="{{ request.form.title }}"
+            required>
+        </div>
+    </div>
+ 
+    <div class="control-group">
+        <div class="controls">
+          <input type="text" id="lname" name="lname" class="input-xlarge"
+            placeholder="Please enter your last name" value="{{ request.form.title }}"
+            required>
+        </div>
+    </div>
+ 
+    <div class="control-group">
+        <div class="controls">
+          <input type="text" id="email" name="email" class="input-xlarge"
+            placeholder="Please enter your email address" value="{{ request.form.title }}"
+            required>
+        </div>
+    </div>
+ 
+    <div class="control-group">
+        <div class="controls">
+          <select name=profession>
+            <option value='Developer'>Developer</option>
+            <option value='DevOps'>DevOps</option>
+            <option value='Sales'>Sales</option>
+            <option value='Human Resources'>Human Resources</option>
+          </select>
+        </div>
+    </div>
+ 
+    <div class="control-group">
+        <div class="controls">
+          <button type="submit" class="btn btn-success">Submit Profession</button>
+          <a href="{{ url_for('index') }}">Back to list</a>
+        </div>
+    </div>
+  </form>
+{% endblock %}
