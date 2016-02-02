@@ -9,8 +9,9 @@ import twitter
 #User configurable variables
 speedTestBin = "/Users/ccord/Dropbox/scripts/speedtest/speedtest-cli"
 outFile = "/Users/ccord/Dropbox/scripts/speedtest/data.csv"
+##In mbps
 downSpeed = "150"
-upSpeed = "10"
+upSpeed = "9"
 
 def test():
 
@@ -59,7 +60,8 @@ def test():
       pass
 
   # tweet if down speed is less than whatever I set
-  elif (eval(d)>50) or (eval(u)<10):
+  elif (eval(d) > downSpeed) or (eval(u) > upSpeed):
+  #elif (eval(d)<50) or (eval(u)>5):
     print "trying to tweet"
     try:
       # i know there must be a better way than to do (str(int(eval())))
