@@ -60,7 +60,8 @@ def test():
       pass
 
   # tweet if down speed is less than whatever I set
-  elif (eval(d) > downSpeed) or (eval(u) > upSpeed):
+  elif (eval(d) < eval(downSpeed)):
+  #elif (eval(d) < downSpeed) or (eval(u) < upSpeed):
   #elif (eval(d)<50) or (eval(u)>5):
     print "trying to tweet"
     try:

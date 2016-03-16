@@ -7,6 +7,8 @@ APPID="icinga"
 REGIONID="usw2"
 SIZE="m1.medium"
 SUBNETIDLIST="subnet-3728ca52"
+AMI_ID="potato"
+
 echo "Searching for $APPID security group"
 SGROUP=$(../bin/ec2-describe-group -F "tag:app=${APPID}" -F "tag:environment=${ENVIRONMENTID}" -F "tag:region=${REGIONID}"  --hide-tags|grep GROUP | awk '{print $2}')
 for SUBNETID in $SUBNETIDLIST; do
@@ -34,7 +36,7 @@ for SUBNETID in $SUBNETIDLIST; do
 		yes | knife $i delete $NAME &>/dev/null
 	done
 	i=""
-	INSTANCEID=$(../bin/ec2-run-instances ami-927613a2 --user-data-file $TMPFILE -n 1 -k livemagic_ops -t ${SIZE} --subnet ${SUBNETID} -g ${SGROUP} --associate-public-ip-address TRUE|grep INSTANCE|awk '{print $2}')
+	INSTANCEID=$(../bin/ec2-run-instances ${AMI_ID} --user-data-file $TMPFILE -n 1 -k oneringtorulethemall -t ${SIZE} --subnet ${SUBNETID} -g ${SGROUP} --associate-public-ip-address TRUE|grep INSTANCE|awk '{print $2}')
 	../bin/ec2-create-tags ${INSTANCEID} --tag Name="${REGIONID}-${ENVIRONMENTID}-${APPCODE}-${INSTANCENUM}" --tag region="${REGIONID}" --tag app="${APPID}" --tag appcode="${APPCODE}" --tag az="${AZID}" --tag environment="${ENVIRONMENTID}" --tag instancenumber="${INSTANCENUM}"
 	rm -rf $TMPFILE
 done
